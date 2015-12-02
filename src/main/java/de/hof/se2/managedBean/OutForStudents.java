@@ -5,6 +5,8 @@
  */
 package de.hof.se2.managedBean;
 
+import de.hof.se2.eigeneNoten.Endnote;
+import de.hof.se2.eigeneNoten.Zwischenpruefungsnote;
 import de.hof.se2.entity.Noten;
 import de.hof.se2.entity.Personen;
 import de.hof.se2.sessionBean.BerechnungNotenLocal;
@@ -35,7 +37,7 @@ public class OutForStudents implements Serializable {
     @Default
     Document doc;
     @LoggedIn
-    UserDaten user;
+    User user;
 
 //    @Current Document doc;
 //    @LoggedIn User user;
@@ -95,6 +97,13 @@ public class OutForStudents implements Serializable {
         List<Personen> person = em.createNamedQuery("Personen.findByIdPersonen", Personen.class).setParameter("idPersonen", matrikelNr).getResultList();
         return person.get(0);
     }
+    /**
+     * Methode um Änderungen an den Wunschnoten in die DB zu schreiben
+     * @param matrikelNr 
+     */
+    public void setStudent(int matrikelNr) {
+        
+    }
 
     /**
      * @author max
@@ -137,9 +146,14 @@ public class OutForStudents implements Serializable {
         return this.berechnungNoten.getMedian(idStudienfach);
     }
 
+    /**
+     * Gibt eine Liste von Statistik Objekte zurueck, die nach Notenart unterscheiden 
+     * @author Maximilian Schreiber
+     * @param idStudienfach
+     * @return List<Statistik>
+     */
     @Named
-    public Statistik getStatistik(int idStudienfach) {
-
+    public List<Statistik> getStatistik(int idStudienfach) {
         return this.statistikBeanLocal.getStatistik(idStudienfach);
     }
 
@@ -149,8 +163,13 @@ public class OutForStudents implements Serializable {
     }
     
     @Named
-    public double getEndnote(int personId){
+    public Endnote getEndnote(int personId){
         return this.berechnungNoten.getEndnote(personId);
+    }
+    
+    @Named
+    public double getWunschEndnote(int personId){
+        return this.berechnungNoten.getWunschEndnote(personId);
     }
 
     @Named
@@ -160,9 +179,14 @@ public class OutForStudents implements Serializable {
     }
     
     @Named
+    @Deprecated
     public Statistik getStatistik(List<Noten> notenListe) {
-
         return this.statistikBeanLocal.getStatistik(notenListe);
+    }
+    
+    @Named
+    public Zwischenpruefungsnote getZwischenpruefungsnote(int personID){
+        return this.berechnungNoten.getNoteGrundstudium(personID);
     }
     
 }
