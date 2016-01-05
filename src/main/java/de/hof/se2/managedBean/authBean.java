@@ -6,7 +6,9 @@
 package de.hof.se2.managedBean;
 
 import de.hof.se2.entity.Personen;
+import de.hof.se2.sessionBean.authSessionLocal;
 import java.util.List;
+import javax.ejb.EJB;
 //import javax.annotation.ManagedBean;
 //import javax.ejb.Stateless;
 //import javax.ejb.LocalBean;
@@ -22,77 +24,58 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
 /**
- *
+ * authBean ist das Gegenstück der authSession im Package de.hof.se2.sessionBean 
  * @author Schmidbauer
  */
 @SessionScoped
 @Named(value = "authBean")
 public class authBean {
+    @EJB 
+    private authSessionLocal localSession;
 
     @Inject Credentials credentials;
     @PersistenceContext EntityManager em;
 
     private User user;
     
+    /**
+     *Login per localSession Bean. Erzeugt einen User, der Injected werden kann
+     */
     @Named 
-    public void login(int id, String password) {
-//        User test= new User();
-//        test.setPassword("passwort");
-//        test.setUserId(1);
-        List<Personen> results = em.createQuery(
-                
-                
-                "select p from Personen p where p.idPersonen=:username and p.passwort=:password")
-                .setParameter("username", credentials.getUsername())
-//                .setParameter("username", id)
-//                .setParameter("username", test.getUserId())
-                .setParameter("password", credentials.getPassword())
-//                .setParameter("password", password)
-//                .setParameter("password", test.getPassword())
-                .getResultList();
-
-        if (!results.isEmpty()) {
-            
-            user = new User();
-            user.setUserId(results.get(0).getIdPersonen());
-            user.setNachname(results.get(0).getNachname());
-            user.setVorname(results.get(0).getVorname());
-            user.setRolle((int)results.get(0).getRolle());
-            
-
-        }
-
+    public void login() {
+        this.localSession.login();
     }
 
+    /**
+     * Loggt einen USer aus. Bedient sich der Localen SessionBean
+     */
     public void logout() {
 
-        user = null;
+        this.localSession.setUser(null);
 
     }
 
+    /**
+     * Stellt fest ob ein USer eingeloggt ist. Bedient sich der Localen SessionBean
+     * @return boolean
+     */
     public boolean isLoggedIn() {
 
-        return user != null;
+        return this.localSession.getCurrentUser() != null;
 
     }
 
+    /**
+     * Gibt den momentan eingeloggten BEnutzer zurück
+     * Bedient sich der SessionBean authSession
+     * @return Den momentanen BEnutzer, der Injected werden kann
+     */
     @Produces
     @LoggedIn
     @Named
    public User getCurrentUser() {
-//       User myUSer=new User();
-//       myUSer.setUserId(2);
-        return user;
-//return myUSer;
+       return this.localSession.getCurrentUser();
     }
 
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-    
     
 }

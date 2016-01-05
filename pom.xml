@@ -12,6 +12,11 @@
     <properties>
         <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <junit-version>4.11</junit-version>
+        <arquillian-version>1.1.4.Final</arquillian-version>
+        <arquillian-wildfly-version>8.1.0.Final</arquillian-wildfly-version>
+        <arquillian-transaction-version>1.0.1.Final</arquillian-transaction-version>  
+        <javaee-server-home>/Java/wildfly-8.1.0.Final</javaee-server-home>
     </properties>
     
     <dependencies>
@@ -35,12 +40,14 @@
             <groupId>org.wildfly.plugins</groupId>
             <artifactId>wildfly-maven-plugin</artifactId>
             <version>1.0.2.Final</version>
+            <scope>test</scope>
+            <type>jar</type>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>
-            <scope>test</scope>
+            <type>jar</type>
         </dependency>
         <dependency>
             <groupId>org.hamcrest</groupId>
@@ -55,10 +62,73 @@
             <type>jar</type>
         </dependency>
         <dependency>
+            <groupId>org.jboss.arquillian.container</groupId>
+            <artifactId>arquillian-container-spi</artifactId>
+            <version>1.1.2.Final-wildfly-1</version>
+            <scope>test</scope>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven.surefire</groupId>
+            <artifactId>surefire-junit4</artifactId>
+            <version>2.19</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.googlecode.wicket-jquery-ui</groupId>
+            <artifactId>jquery-ui-calendar</artifactId>
+            <version>6.2.2</version>
+        </dependency>
+        <dependency>
             <groupId>javax</groupId>
             <artifactId>javaee-web-api</artifactId>
             <version>7.0</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax</groupId>
+            <artifactId>javaee-api</artifactId>
+            <version>7.0</version>
+        </dependency>
+        <!-- rquillian itself-->
+        <dependency>
+            <groupId>org.jboss.arquillian</groupId>
+            <artifactId>arquillian-bom</artifactId>
+            <version>${arquillian-version}</version>
+            <scope>provided</scope>
+            <type>pom</type>
+        </dependency>
+        <!-- this is in an extention to arquillian it is optional-->
+        <dependency>
+            <groupId>org.jboss.arquillian.extension</groupId>
+            <artifactId>arquillian-transaction-bom</artifactId>
+            <version>${arquillian-transaction-version}</version>
+            <type>pom</type>
+            <scope>provided</scope>
+        </dependency>
+        <!-- this is container adapter for wildfly-->
+        <dependency>
+            <groupId>org.wildfly</groupId>
+            <artifactId>wildfly-arquillian-container-embedded</artifactId>
+            <version>${arquillian-wildfly-version}</version>
+        </dependency>
+        <!-- this is the wildfly emb.container - BUT eventually it is not a fully blown emb.container-->
+        <dependency>
+            <groupId>org.wildfly</groupId>
+            <artifactId>wildfly-embedded</artifactId>
+            <version>${arquillian-wildfly-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.as</groupId>
+            <artifactId>jboss-as-arquillian-container-managed</artifactId>
+            <version>7.1.1.Final</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.arquillian.core</groupId>
+            <artifactId>arquillian-core-api</artifactId>
+            <version>1.1.4.Final</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -69,8 +139,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.1</version>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                     <compilerArguments>
                         <endorseddirs>${endorsed.dir}</endorseddirs>
                     </compilerArguments>
@@ -110,26 +180,55 @@
                 </executions>
             </plugin>
             <plugin>
-            <groupId>org.wildfly.plugins</groupId>
-            <artifactId>wildfly-maven-plugin</artifactId>
-            <version>1.0.2.Final</version>
-            <configuration>
-               <groupId>mysql</groupId>
-               <artifactId>mysql-connector-java</artifactId>
-               <fileName>mysql-connector-java-5.1.37-bin.jar</fileName>
-               <executions>
-                  <execution>
-                     <id>deploy-driver-MySQL</id>
-                     <phase>package</phase>
-                     <goals>
-                        <goal>deploy-artifact</goal>
-                     </goals>
-                     <configuration />
-                  </execution>
-               </executions>
-               <filename>${project.build.finalName}.war</filename>
-            </configuration>
-         </plugin>
+                <groupId>org.wildfly.plugins</groupId>
+                <artifactId>wildfly-maven-plugin</artifactId>
+                <version>1.0.2.Final</version>
+                <configuration>
+                    <groupId>mysql</groupId>
+                    <artifactId>mysql-connector-java</artifactId>
+                    <fileName>mysql-connector-java-5.1.37-bin.jar</fileName>
+                    <executions>
+                        <execution>
+                            <id>deploy-driver-MySQL</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>deploy-artifact</goal>
+                            </goals>
+                            <configuration />
+                        </execution>
+                    </executions>
+                    <filename>${project.build.finalName}.war</filename>
+                </configuration>
+            </plugin>
+            <!-- maven ear plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-ear-plugin</artifactId>
+                <version>2.10.1</version>
+                <configuration>
+                    <generateModuleId>true</generateModuleId>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <!-- ejb plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-ejb-plugin</artifactId>
+                <version>2.5.1</version>
+                <configuration>
+                    <ejbVersion>${ejb-spec-version}</ejbVersion>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.19</version>
+            </plugin>
         </plugins>
     </build>
     <repositories>

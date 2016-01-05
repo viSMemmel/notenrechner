@@ -6,11 +6,16 @@
 package de.hof.se2.sessionBean;
 
 import de.hof.se2.entity.Noten;
-import de.hof.se2.test.Statistik;
+import de.hof.se2.logWriter.LogWriter;
+import de.hof.se2.logik.Statistik;
+import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.logging.Logger;
 import javax.annotation.Resource;
 import javax.ejb.SessionContext;
 import javax.ejb.Local;
@@ -28,7 +33,7 @@ import javax.persistence.PersistenceContext;
  */
 @Singleton
 @Local(StatistikBeanLocal.class)
-public class StatistikBean implements StatistikBeanLocal {
+public class StatistikBean implements StatistikBeanLocal, Serializable {
 
     @Resource
     SessionContext sessionContext;
@@ -36,16 +41,25 @@ public class StatistikBean implements StatistikBeanLocal {
     @PersistenceContext
     EntityManager em;
 
-    public StatistikBean() {
+    LogWriter logBerechnungWriter;
+    Logger logBerechnung;
+
+    /**
+     * Logger für die Statistikberechnugn
+     * @throws IOException
+     */
+    public StatistikBean() throws IOException {
+        this.logBerechnungWriter = new LogWriter(new File("/home/max/studium/statistikLog"), Boolean.TRUE);
+        this.logBerechnung = logBerechnungWriter.newLog();
     }
 
     /**
-     *
+     * Holt Liste der Noten eines Studienfaches aus der Datenbank
      * @param idStudienfach
      * @return List<Noten> -> Noten aus der Datenbank, die zum Studienfach
      * (idStudienfach) gehoeren
      */
-    private List<Noten> dbAbfrage(int idStudienfach) {
+    private List<Noten> dbAbfrageAllerNoten(int idStudienfach) {
         List<Noten> liste = null;
         try {
             //Gibt die notenListe aufsteigend sortiert zurueck (muss man spaeter nicht nochmal sortieren):
@@ -63,7 +77,8 @@ public class StatistikBean implements StatistikBeanLocal {
     }
 
     /**
-     * @author max Wert des Arithmetischen Mittels des Studienfaches
+     * Wert des Arithmetischen Mittels des Studienfaches
+     * @author max 
      */
     private double berechneArithmetischesMittel(List<Noten> notenListe) {
 
@@ -77,7 +92,8 @@ public class StatistikBean implements StatistikBeanLocal {
     }
 
     /**
-     * @author max Wert der Standardabweichung des Studienfaches
+     * Wert der Standardabweichung des Studienfaches
+     * @author max 
      */
     private double berechneStandardabweichung(double varianz) {
 //        this.standardabweichung = Math.sqrt(varianz);
@@ -85,7 +101,8 @@ public class StatistikBean implements StatistikBeanLocal {
     }
 
     /**
-     * @author max den Median des Studiengangs
+     * den Median des Studiengangs
+     * @author max 
      */
     private int berechneMedian(List<Noten> notenListe) {
         int median = 0;
@@ -95,7 +112,8 @@ public class StatistikBean implements StatistikBeanLocal {
     }
 
     /**
-     * @author max Wert der Varianz des Studiengangs
+     * Wert der Varianz des Studiengangs
+     * @author max 
      */
     private double berechneVarianz(List<Noten> notenListe, double arithmetischesMittel) {
 
@@ -110,8 +128,9 @@ public class StatistikBean implements StatistikBeanLocal {
     }
 
     /**
-     *
+     * Holt minimale und Maximale Note der Liste, die übergeben wurde
      * @author max
+     * @param List<Noten> Liste der Noten, deren Maximum, Minimum ermittelt werden soll
      * @return ein int[] -> erster Eintrag = Minimum, zweiter Eintrag = Maximum
      */
     private int[] getMinMaxNoten(List<Noten> notenListe) {
@@ -185,15 +204,15 @@ public class StatistikBean implements StatistikBeanLocal {
     public List<Statistik> getStatistik(int idStudienfach) {
         List<Statistik> rc = new ArrayList<>();
 
-        List<Noten> notenListe = this.dbAbfrage(idStudienfach); //Liefert sortierte NotenListe, aber nicht unterschieden nach Art
+        List<Noten> notenListe = this.dbAbfrageAllerNoten(idStudienfach); //Liefert sortierte NotenListe, aber nicht unterschieden nach Art
         for (int i : this.getIDsNotenarten(idStudienfach)) {
             ArrayList<Noten> temp = new ArrayList<>();
             for (Noten noten : notenListe) {
                 if (noten.getNotenartId().getIdNotenart() == i) {
                     temp.add(noten);
                 }
-        }
-        //Alter Code
+            }
+            //Alter Code
 //        for (int i = 0; i < anzahl; i++) {
 //            ArrayList<Noten> temp = new ArrayList<>();
 //            for (Noten noten : notenListe) {
@@ -210,7 +229,7 @@ public class StatistikBean implements StatistikBeanLocal {
             Statistik stat = new Statistik(aritmetischesMittel, standardAbweichung, median, varianz, temp.get(temp.size() - 1).getNote(), tempNote.getNote(), tempNote.getStudienfachId(), tempNote.getNotenartId());
             rc.add(stat);
         }
-
+        logBerechnung.info(rc.toString());
         return rc;
     }
 
